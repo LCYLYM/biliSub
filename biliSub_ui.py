@@ -40,12 +40,13 @@ app = FastAPI(
 )
 
 # 允许跨域请求（仅用于本地开发）
+# 限制为本地地址
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=False,  # 本地工具不需要凭证
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_origins=["http://localhost:8080", "http://127.0.0.1:8080"],
+    allow_credentials=False,
+    allow_methods=["GET", "POST"],
+    allow_headers=["Content-Type"],
 )
 
 # 创建存储目录
@@ -707,25 +708,31 @@ HTML_CONTENT = '''<!DOCTYPE html>
             const stats = document.getElementById('stats');
             const fileList = document.getElementById('fileList');
             
-            // 显示统计信息
-            stats.innerHTML = `
-                <div class="stat-item">
-                    <div class="stat-value">${result.stats.total_videos || 0}</div>
-                    <div class="stat-label">总视频数</div>
-                </div>
-                <div class="stat-item">
-                    <div class="stat-value">${result.stats.success || 0}</div>
-                    <div class="stat-label">成功</div>
-                </div>
-                <div class="stat-item">
-                    <div class="stat-value">${result.stats.failed || 0}</div>
-                    <div class="stat-label">失败</div>
-                </div>
-                <div class="stat-item">
-                    <div class="stat-value">${result.stats.asr_used || 0}</div>
-                    <div class="stat-label">使用ASR</div>
-                </div>
-            `;
+            // 显示统计信息 - 使用安全的DOM操作
+            stats.innerHTML = '';
+            const statsData = [
+                { value: result.stats.total_videos || 0, label: '总视频数' },
+                { value: result.stats.success || 0, label: '成功' },
+                { value: result.stats.failed || 0, label: '失败' },
+                { value: result.stats.asr_used || 0, label: '使用ASR' }
+            ];
+            
+            statsData.forEach(stat => {
+                const statItem = document.createElement('div');
+                statItem.className = 'stat-item';
+                
+                const statValue = document.createElement('div');
+                statValue.className = 'stat-value';
+                statValue.textContent = stat.value;
+                
+                const statLabel = document.createElement('div');
+                statLabel.className = 'stat-label';
+                statLabel.textContent = stat.label;
+                
+                statItem.appendChild(statValue);
+                statItem.appendChild(statLabel);
+                stats.appendChild(statItem);
+            });
             
             // 显示文件列表
             fileList.innerHTML = '';
@@ -810,7 +817,23 @@ async def download_file(task_id: str, file_path: str):
     if task_id not in tasks_db:
         raise HTTPException(status_code=404, detail="任务不存在")
     
+    # 验证file_path，防止目录遍历攻击
+    # 移除任何路径遍历字符
+    import os.path
+    file_path = os.path.normpath(file_path)
+    if file_path.startswith('..') or file_path.startswith('/') or '\\' in file_path:
+        raise HTTPException(status_code=400, detail="无效的文件路径")
+    
     file_full_path = OUTPUT_DIR / task_id / file_path
+    
+    # 确保文件路径在允许的目录内
+    try:
+        file_full_path = file_full_path.resolve()
+        allowed_dir = (OUTPUT_DIR / task_id).resolve()
+        if not str(file_full_path).startswith(str(allowed_dir)):
+            raise HTTPException(status_code=403, detail="禁止访问")
+    except Exception:
+        raise HTTPException(status_code=400, detail="无效的文件路径")
     
     if not file_full_path.exists():
         raise HTTPException(status_code=404, detail="文件不存在")

@@ -43,7 +43,26 @@ export BILI_BUVID3=你的buvid3
 
 ## 使用方法
 
-### 基本用法
+### Web UI（推荐）
+
+**单文件HTML界面**，无需复杂配置，提供可视化操作：
+
+```bash
+python biliSub_ui.py
+```
+
+然后在浏览器中访问 `http://localhost:8080` 即可使用。
+
+**功能特点：**
+- 🎨 美观的可视化界面
+- 📝 支持单个或批量URL输入
+- 🔧 支持所有输出格式（SRT、ASS、VTT、JSON、TXT、LRC）
+- ⚙️ 完整的高级选项（代理、ASR、并发等）
+- 📊 实时进度显示
+- 💾 一键下载生成的字幕文件
+- 📱 响应式设计，支持移动设备
+
+### 命令行用法
 
 ```bash
 # 下载单个视频字幕
@@ -58,6 +77,16 @@ python enhanced_bilisub.py -i "https://www.bilibili.com/video/BV1xx411c79H" -f s
 # 使用代理
 python enhanced_bilisub.py -i "https://www.bilibili.com/video/BV1xx411c79H" --proxy "http://127.0.0.1:7890"
 ```
+
+### Web UI 界面预览
+
+**主界面：**
+
+![Web UI 主界面](https://github.com/user-attachments/assets/d577cdd2-7906-4492-b51a-f3bbd42bad15)
+
+**高级选项：**
+
+![Web UI 高级选项](https://github.com/user-attachments/assets/a8f1e4a1-2b1f-44e0-b504-4a4ba5034410)
 
 ### 命令行参数
 
@@ -139,11 +168,14 @@ python enhanced_bilisub.py -i "https://www.bilibili.com/video/BV1xx411c79H" --as
 
 ```
 biliSub/
-├── enhanced_bilisub.py   # 增强版主程序
+├── biliSub_ui.py         # Web UI 界面（推荐）
+├── enhanced_bilisub.py   # 增强版主程序（命令行）
 ├── bilibiliSub.py        # 基础版程序
+├── bilisub_api.py        # RESTful API 服务器
 ├── requirements.txt      # 依赖库列表
 ├── README.md             # 说明文档
-└── output/               # 输出目录
+├── ui_output/            # Web UI 输出目录
+└── output/               # 命令行输出目录
     └── temp/             # 临时文件目录
 ```
 

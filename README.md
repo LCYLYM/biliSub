@@ -78,6 +78,16 @@ python enhanced_bilisub.py -i "https://www.bilibili.com/video/BV1xx411c79H" -f s
 python enhanced_bilisub.py -i "https://www.bilibili.com/video/BV1xx411c79H" --proxy "http://127.0.0.1:7890"
 ```
 
+### Web UI 界面预览
+
+**主界面：**
+
+![Web UI 主界面](https://github.com/user-attachments/assets/d577cdd2-7906-4492-b51a-f3bbd42bad15)
+
+**高级选项：**
+
+![Web UI 高级选项](https://github.com/user-attachments/assets/a8f1e4a1-2b1f-44e0-b504-4a4ba5034410)
+
 ### 命令行参数
 
 | 参数 | 说明 | 默认值 |

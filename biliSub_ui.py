@@ -5,6 +5,7 @@
 提供单文件HTML界面，可本地运行，无需服务器
 """
 import os
+import os.path
 import json
 import uuid
 import asyncio
@@ -60,7 +61,6 @@ tasks_db = {}  # task_id -> task_info
 class DownloadRequest(BaseModel):
     urls: List[str] = Field(..., description="视频URL列表")
     formats: List[str] = Field(["srt"], description="输出格式列表")
-    output_dir: Optional[str] = Field(None, description="输出目录")
     concurrency: int = Field(3, description="并发数")
     proxy: Optional[str] = Field(None, description="代理设置")
     use_asr: bool = Field(True, description="是否使用语音识别")
@@ -700,7 +700,13 @@ HTML_CONTENT = '''<!DOCTYPE html>
             progressFill.textContent = Math.round(progress) + '%';
             
             statusMessage.textContent = message;
-            statusMessage.className = 'status-message status-' + status;
+            // 验证status值以防止CSS注入
+            const validStatuses = ['processing', 'completed', 'failed', 'pending'];
+            if (validStatuses.includes(status)) {
+                statusMessage.className = 'status-message status-' + status;
+            } else {
+                statusMessage.className = 'status-message';
+            }
         }
         
         function displayResults(result) {
@@ -749,7 +755,11 @@ HTML_CONTENT = '''<!DOCTYPE html>
                     downloadBtn.className = 'download-btn';
                     downloadBtn.textContent = '下载';
                     downloadBtn.onclick = () => {
-                        window.location.href = result.download_urls[file];
+                        const downloadUrl = result.download_urls[file];
+                        // 验证URL以防止开放重定向
+                        if (downloadUrl && downloadUrl.startsWith('/download/')) {
+                            window.location.href = downloadUrl;
+                        }
                     };
                     
                     li.appendChild(fileName);
@@ -757,7 +767,13 @@ HTML_CONTENT = '''<!DOCTYPE html>
                     fileList.appendChild(li);
                 });
             } else {
-                fileList.innerHTML = '<li class="file-item"><span class="file-name">没有生成文件</span></li>';
+                const li = document.createElement('li');
+                li.className = 'file-item';
+                const noFile = document.createElement('span');
+                noFile.className = 'file-name';
+                noFile.textContent = '没有生成文件';
+                li.appendChild(noFile);
+                fileList.appendChild(li);
             }
             
             resultsCard.classList.remove('hidden');
@@ -819,7 +835,6 @@ async def download_file(task_id: str, file_path: str):
     
     # 验证file_path，防止目录遍历攻击
     # 移除任何路径遍历字符
-    import os.path
     file_path = os.path.normpath(file_path)
     if file_path.startswith('..') or file_path.startswith('/') or '\\' in file_path:
         raise HTTPException(status_code=400, detail="无效的文件路径")

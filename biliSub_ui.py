@@ -39,11 +39,11 @@ app = FastAPI(
     version="1.0.0",
 )
 
-# 允许跨域请求
+# 允许跨域请求（仅用于本地开发）
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
-    allow_credentials=True,
+    allow_credentials=False,  # 本地工具不需要凭证
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -590,7 +590,7 @@ HTML_CONTENT = '''<!DOCTYPE html>
             e.preventDefault();
             
             // 获取表单数据
-            const urls = document.getElementById('urls').value.trim().split('\\n').filter(u => u.trim());
+            const urls = document.getElementById('urls').value.trim().split('\n').filter(u => u.trim());
             if (urls.length === 0) {
                 alert('请输入至少一个视频URL');
                 return;
@@ -860,8 +860,8 @@ def main():
     print("访问地址: http://localhost:8080")
     print("\n按 Ctrl+C 停止服务器\n")
     
-    # 启动服务器
-    uvicorn.run(app, host="0.0.0.0", port=8080, log_level="info")
+    # 启动服务器（仅绑定到本地回环地址）
+    uvicorn.run(app, host="127.0.0.1", port=8080, log_level="info")
 
 if __name__ == "__main__":
     main()

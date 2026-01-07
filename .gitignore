@@ -12,6 +12,7 @@ config.json
 # 输出目录
 output/
 api_results/
+ui_output/
 
 # 虚拟环境
 venv/

@@ -29,8 +29,8 @@ python enhanced_bilisub.py -i "https://www.bilibili.com/video/BV1xx411c79H"
 # Download from a file containing multiple URLs (one per line)
 python enhanced_bilisub.py -i urls.txt
 
-# Specify output formats (srt, ass, vtt, json, txt, lrc)
-python enhanced_bilisub.py -i "VIDEO_URL" -f srt,ass,vtt
+# Specify output formats (srt, ass, vtt, json, txt, lrc, md, html, asr)
+python enhanced_bilisub.py -i "VIDEO_URL" -f srt,ass,vtt,md,html
 
 # Control concurrency
 python enhanced_bilisub.py -i urls.txt -c 5
@@ -46,6 +46,9 @@ python enhanced_bilisub.py -i "VIDEO_URL" --config config.json
 
 # Use proxy
 python enhanced_bilisub.py -i "VIDEO_URL" --proxy "http://127.0.0.1:7890"
+
+# Download all parts of a multi-P video with richer outputs
+python enhanced_bilisub.py -i "VIDEO_URL" --all-pages -f srt,ass,vtt,md,html,txt,asr
 ```
 
 ### Running the API Server
@@ -83,6 +86,7 @@ The primary entry point for subtitle downloading. Key classes:
 - **Subtitle Format Support**:
   - SRT (SubRip), ASS (Advanced SubStation), VTT (WebVTT)
   - JSON (with metadata), TXT (plain text), LRC (lyrics format)
+  - MD (Markdown), HTML (single-page styled export), ASR (raw ASR segments)
 
 #### 2. API Server (`bilisub_api.py`)
 RESTful API service built with FastAPI:

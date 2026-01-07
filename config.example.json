@@ -6,11 +6,12 @@
   },
   "concurrency": 3,
   "proxy": "",
-  "output_formats": ["srt", "ass", "vtt"],
+  "output_formats": ["srt", "ass", "vtt", "md", "html", "txt", "asr"],
   "use_asr": true,
   "asr_model": "small",
   "asr_lang": "zh",
   "save_audio": false,
   "request_interval": 1.5,
-  "timeout": 30
+  "timeout": 30,
+  "all_pages": false
 }

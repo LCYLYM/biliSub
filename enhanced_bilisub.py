@@ -10,6 +10,7 @@ import json
 import os
 import re
 import time
+import html
 from dataclasses import dataclass, field
 from datetime import timedelta
 from typing import List, Dict, Tuple, Optional, Union, Any
@@ -55,6 +56,7 @@ DEFAULT_CONFIG = {
     "output_dir": "output",       # 输出目录
     "save_audio": False,          # 是否保存临时音频文件
     "filter_danmaku": True,       # 是否过滤弹幕噪声
+    "all_pages": False,           # 是否解析多P视频的所有选集
     "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Safari/537.36",
 }
 
@@ -66,6 +68,9 @@ class SubtitleFormat(str, Enum):
     JSON = "json"
     TXT = "txt"
     LRC = "lrc"
+    MD = "md"
+    HTML = "html"
+    ASR = "asr"
 
 @dataclass
 class SubtitleSegment:
@@ -201,9 +206,35 @@ class BiliSubDownloader:
                     tasks.append(task)
             except Exception as e:
                 logger.error(f"解析URL失败 {input_source}: {str(e)}")
-                
+
+        # 如果需要处理所有选集，则展开多P任务
+        if self.config.get("all_pages"):
+            expanded_tasks = []
+            for task in tasks:
+                expanded_tasks.extend(self._expand_all_pages(task))
+            tasks = expanded_tasks
+
         self.stats["total_videos"] = len(tasks)
         return tasks
+
+    def _expand_all_pages(self, task: DownloadTask) -> List[DownloadTask]:
+        """将多P视频展开为每个分P的单独任务"""
+        try:
+            v = video.Video(bvid=task.bvid, credential=self.credential)
+            pages = sync(v.get_pages())
+            if pages is None:
+                logger.warning(f"未能获取分P信息，按单任务处理: {task.bvid}")
+                return [task]
+            if not pages:
+                return [task]
+            expanded = []
+            for idx, _ in enumerate(pages, start=1):
+                expanded.append(DownloadTask(url=task.url, bvid=task.bvid, page=idx))
+            logger.info(f"已展开多P视频 {task.bvid} 为 {len(expanded)} 个分P任务")
+            return expanded
+        except Exception as e:
+            logger.warning(f"获取分P信息失败，按单个任务处理 {task.bvid}: {str(e)}")
+            return [task]
 
     def _create_task_from_url(self, url: str) -> Optional[DownloadTask]:
         """从URL创建下载任务
@@ -847,6 +878,12 @@ class BiliSubDownloader:
             self._generate_txt(segments, output_path)
         elif format_type == SubtitleFormat.LRC:
             self._generate_lrc(segments, output_path)
+        elif format_type == SubtitleFormat.MD:
+            self._generate_md(segments, output_path, video_info)
+        elif format_type == SubtitleFormat.HTML:
+            self._generate_html(segments, output_path, video_info)
+        elif format_type == SubtitleFormat.ASR:
+            self._generate_asr(segments, output_path)
 
     def _generate_srt(self, segments: List[SubtitleSegment], output_path: str):
         """生成SRT格式字幕
@@ -1058,6 +1095,87 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
                 start_time = self._format_lrc_time(segment.start)
                 f.write(f"[{start_time}]{segment.content}\n")
 
+    def _generate_md(self, segments: List[SubtitleSegment], output_path: str, video_info: VideoInfo = None):
+        """生成Markdown格式字幕"""
+        with open(output_path, 'w', encoding='utf-8') as f:
+            if video_info:
+                duration = self._format_display_time(video_info.duration)
+                title_text = video_info.title or video_info.bvid
+                safe_title = re.sub(r'([#`*_\[\](){}<>\\])', r'\\\1', title_text)
+                f.write(f"# {safe_title}\n\n")
+                f.write(f"- 时长：{duration}\n")
+                f.write(f"- 分辨率：{video_info.width}x{video_info.height}\n\n")
+            for segment in segments:
+                start = self._format_display_time(segment.start)
+                end = self._format_display_time(segment.end)
+                f.write(f"- [{start} - {end}] {segment.content}\n")
+
+    def _generate_html(self, segments: List[SubtitleSegment], output_path: str, video_info: VideoInfo = None):
+        """生成单页HTML格式字幕"""
+        title = video_info.title if video_info else "BiliSub 字幕"
+        meta_info = ""
+        if video_info:
+            duration = self._format_display_time(video_info.duration)
+            meta_info = f"""
+            <div class="meta">
+              <span>时长：{duration}</span>
+              <span>分辨率：{video_info.width}x{video_info.height}</span>
+            </div>
+            """
+        segments_html = []
+        for idx, segment in enumerate(segments, 1):
+            start = self._format_display_time(segment.start)
+            end = self._format_display_time(segment.end)
+            text = html.escape(segment.content).replace("\n", "<br>")
+            segments_html.append(f"""
+            <div class="segment">
+              <div class="time">#{idx} {start} → {end}</div>
+              <div class="content">{text}</div>
+            </div>
+            """)
+
+        page = f"""<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <title>{html.escape(title)}</title>
+  <style>
+    body {{ font-family: "Segoe UI", "PingFang SC", sans-serif; background:#f7f9fb; color:#1f2d3d; margin:0; padding:24px; }}
+    .container {{ max-width: 960px; margin: 0 auto; }}
+    h1 {{ margin-bottom: 8px; }}
+    .meta {{ color:#475569; display:flex; gap:16px; margin-bottom:16px; }}
+    .card {{ background:#fff; border-radius:12px; padding:20px; box-shadow:0 6px 18px rgba(0,0,0,0.08); border:1px solid #e5e7eb; }}
+    .segment {{ border-bottom:1px solid #eef1f5; padding:12px 0; }}
+    .segment:last-child {{ border-bottom:none; }}
+    .time {{ font-weight:600; color:#3a5fcd; margin-bottom:6px; }}
+    .content {{ line-height:1.6; }}
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="card">
+      <h1>{html.escape(title)}</h1>
+      {meta_info}
+      <div class="segments">
+        {''.join(segments_html)}
+      </div>
+    </div>
+  </div>
+</body>
+</html>"""
+        with open(output_path, "w", encoding="utf-8") as f:
+            f.write(page)
+
+    def _generate_asr(self, segments: List[SubtitleSegment], output_path: str):
+        """生成ASR原始片段格式"""
+        with open(output_path, "w", encoding="utf-8") as f:
+            for segment in segments:
+                start = self._format_display_time(segment.start)
+                end = self._format_display_time(segment.end)
+                # 标记自动识别的片段为ASR，其余为官方字幕
+                prefix = "[ASR]" if segment.is_auto else "[SUB]"
+                f.write(f"{prefix} {start} --> {end} | {segment.content}\n")
+
     def _format_lrc_time(self, seconds: float) -> str:
         """格式化LRC时间
         
@@ -1071,6 +1189,20 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
         s = int(seconds % 60)
         m = int(seconds / 60)
         return f"{m:02d}:{s:02d}.{ms:02d}"
+
+    def _format_display_time(self, seconds: Optional[float]) -> str:
+        """以友好的格式显示时间"""
+        if seconds is None:
+            return "未知"
+        try:
+            val = float(seconds)
+            total_ms = int(round(val * 1000))
+            h, rem = divmod(total_ms, 3600 * 1000)
+            m, rem = divmod(rem, 60 * 1000)
+            s, ms = divmod(rem, 1000)
+            return f"{h:02d}:{m:02d}:{s:02d}.{ms:03d}"
+        except (ValueError, TypeError, OverflowError):
+            return "未知"
 
     def generate_report(self, tasks: List[DownloadTask]):
         """生成统计报告
@@ -1186,7 +1318,7 @@ def main():
     parser.add_argument("-c", "--concurrency", type=int, default=3,
                       help="并发请求数")
     parser.add_argument("-f", "--formats", default="srt",
-                      help="输出格式，以逗号分隔，可选: srt,ass,vtt,json,txt,lrc")
+                      help="输出格式，以逗号分隔，可选: srt,ass,vtt,json,txt,lrc,md,html,asr")
     parser.add_argument("--proxy", help="代理设置")
     parser.add_argument("--use-asr", action="store_true", default=True,
                       help="无字幕时使用语音识别")
@@ -1198,6 +1330,8 @@ def main():
                       help="语音识别语言")
     parser.add_argument("--save-audio", action="store_true",
                       help="保存临时音频文件")
+    parser.add_argument("--all-pages", action="store_true",
+                      help="多P视频时自动下载所有选集")
     parser.add_argument("--config",
                       help="配置文件路径")
     
@@ -1243,6 +1377,7 @@ def main():
         "asr_model": config.get('asr_model', args.asr_model),
         "asr_lang": config.get('asr_lang', args.asr_lang),
         "save_audio": config.get('save_audio', args.save_audio),
+        "all_pages": config.get('all_pages', args.all_pages),
         "temp_dir": os.path.join(output_dir, "temp"),
         "output_dir": output_dir,
     }

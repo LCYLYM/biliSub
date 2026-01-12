@@ -10,6 +10,8 @@
 - 支持双语字幕处理和对齐
 - 字幕清理和优化，包括去除广告、合并相邻时间轴等
 - 丰富的配置选项和错误处理机制
+- 新增Markdown/单页HTML/ASR原始输出，便于整理与二次加工
+- 支持多P选集一键批量解析
 - 详细的下载报告和日志
 
 ## 安装
@@ -66,7 +68,8 @@ python enhanced_bilisub.py -i "https://www.bilibili.com/video/BV1xx411c79H" --pr
 | `-i, --input` | 输入源（URL或文件路径） | 必填 |
 | `-o, --output` | 输出目录 | output |
 | `-c, --concurrency` | 并发请求数 | 3 |
-| `-f, --formats` | 输出格式，以逗号分隔，可选: srt,ass,vtt,json,txt,lrc | srt |
+| `-f, --formats` | 输出格式，以逗号分隔，可选: srt,ass,vtt,json,txt,lrc,md,html,asr | srt |
+| `--all-pages` | 多P视频时自动下载所有选集 | 关闭 |
 | `--proxy` | 代理设置 | 无 |
 | `--use-asr` | 无字幕时使用语音识别 | 开启 |
 | `--no-asr` | 禁用语音识别 | - |
@@ -82,6 +85,9 @@ python enhanced_bilisub.py -i "https://www.bilibili.com/video/BV1xx411c79H" --pr
 4. **JSON**: 包含详细信息的字幕数据，适合进一步处理
 5. **TXT**: 纯文本格式，只包含字幕文本
 6. **LRC**: 歌词格式，适合音频文件
+7. **MD**: Markdown格式，便于整理或发布
+8. **HTML**: 单页精美版，包含时间轴和样式
+9. **ASR**: 语音识别原始片段输出，标注起止时间
 
 ## 语音识别
 
@@ -102,7 +108,7 @@ python enhanced_bilisub.py -i "https://www.bilibili.com/video/BV1xx411c79H" --pr
 ### 下载单个视频的字幕并输出多种格式
 
 ```bash
-python enhanced_bilisub.py -i "https://www.bilibili.com/video/BV1xx411c79H" -f srt,ass,vtt,txt
+python enhanced_bilisub.py -i "https://www.bilibili.com/video/BV1xx411c79H" -f srt,ass,vtt,md,html,txt,asr
 ```
 
 ### 批量下载多个视频的字幕
@@ -119,6 +125,12 @@ https://www.bilibili.com/video/BV1Zx411c7nT
 
 ```bash
 python enhanced_bilisub.py -i urls.txt -c 5
+```
+
+### 下载整部多P/选集
+
+```bash
+python enhanced_bilisub.py -i "https://www.bilibili.com/video/BV1xx411c79H" --all-pages -f html,md,srt
 ```
 
 ### 使用高质量语音识别模型

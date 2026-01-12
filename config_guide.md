@@ -116,11 +116,12 @@ python enhanced_bilisub.py -i "视频URL" --proxy "http://127.0.0.1:7890"
   },
   "proxy": "http://127.0.0.1:7890",
   "concurrency": 3,
-  "output_formats": ["srt", "ass", "vtt"],
+  "output_formats": ["srt", "ass", "vtt", "md", "html", "txt", "asr"],
   "use_asr": true,
   "asr_model": "small",
   "asr_lang": "zh",
-  "save_audio": false
+  "save_audio": false,
+  "all_pages": false
 }
 ```
 
@@ -129,6 +130,11 @@ python enhanced_bilisub.py -i "视频URL" --proxy "http://127.0.0.1:7890"
 ```bash
 python enhanced_bilisub.py -i "视频URL" --config config.json
 ```
+
+### 其他可选项
+
+- `output_formats`: 现在支持 `md`（Markdown）、`html`（单页美观版）、`asr`（ASR原始输出）等新格式，可与现有格式混合。
+- `all_pages`: 将多P/选集视频自动展开为所有分P批量下载，便于一次性解析整部合集。
 
 ## 常见问题
 

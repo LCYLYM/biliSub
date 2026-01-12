@@ -88,11 +88,12 @@ class BilibiliCredentials(BaseModel):
 class TaskRequest(BaseModel):
     url: str = Field(..., description="B站视频URL")
     credentials: Optional[BilibiliCredentials] = Field(None, description="B站账号凭证(可选)")
-    output_formats: List[str] = Field(["srt"], description="输出格式列表，支持srt,ass,vtt,json,txt,lrc")
+    output_formats: List[str] = Field(["srt"], description="输出格式列表，支持srt,ass,vtt,json,txt,lrc,md,html,asr")
     use_asr: bool = Field(True, description="无字幕时是否使用语音识别")
     asr_model: str = Field("small", description="语音识别模型大小(tiny,base,small,medium,large)")
     asr_lang: str = Field("zh", description="语音识别语言")
     callback_url: Optional[HttpUrl] = Field(None, description="任务完成后的回调URL")
+    all_pages: bool = Field(False, description="多P视频是否下载所有分P")
 
 class TaskStatus(BaseModel):
     task_id: str = Field(..., description="任务ID")
@@ -183,6 +184,7 @@ async def process_subtitle_task(task_id: str, task_request: TaskRequest):
             "temp_dir": str(RESULT_DIR / task_id / "temp"),
             "output_dir": str(RESULT_DIR / task_id),
             "callback": ProgressCallback(task_id).update,
+            "all_pages": task_request.all_pages,
         }
         
         # 设置环境变量（如果提供了凭证）
@@ -463,6 +465,10 @@ async def download_file(task_id: str, filename: str, api_key: str = Depends(veri
         media_type = "text/vtt"
     elif filename.endswith(".json"):
         media_type = "application/json"
+    elif filename.endswith(".html"):
+        media_type = "text/html"
+    elif filename.endswith(".md"):
+        media_type = "text/markdown"
     
     logger.info(f"下载文件: {task_id}/{filename}")
     

@@ -36,7 +36,7 @@ class BiliSubAPIClient:
         }
     
     def create_task(self, video_url, credentials=None, output_formats=None, use_asr=True, 
-                  asr_model="small", asr_lang="zh", callback_url=None):
+                  asr_model="small", asr_lang="zh", callback_url=None, all_pages=False):
         """创建字幕处理任务
         
         Args:
@@ -47,6 +47,7 @@ class BiliSubAPIClient:
             asr_model: 语音识别模型大小
             asr_lang: 语音识别语言
             callback_url: 回调通知URL
+            all_pages: 多P视频是否下载所有选集
             
         Returns:
             任务信息字典
@@ -57,6 +58,7 @@ class BiliSubAPIClient:
             "use_asr": use_asr,
             "asr_model": asr_model,
             "asr_lang": asr_lang,
+            "all_pages": all_pages,
         }
         
         # 添加可选参数
@@ -213,11 +215,12 @@ def main():
     parser.add_argument("-u", "--url", required=True, help="B站视频URL")
     parser.add_argument("-k", "--api-key", help="API密钥")
     parser.add_argument("-s", "--server", help="API服务器地址")
-    parser.add_argument("-f", "--formats", default="srt", help="输出格式，用逗号分隔")
+    parser.add_argument("-f", "--formats", default="srt", help="输出格式，用逗号分隔，可选: srt,ass,vtt,json,txt,lrc,md,html,asr")
     parser.add_argument("-o", "--output", default="downloads", help="输出目录")
     parser.add_argument("--use-asr", action="store_true", default=True, help="使用语音识别")
     parser.add_argument("--no-asr", dest="use_asr", action="store_false", help="禁用语音识别")
     parser.add_argument("--config", help="API配置文件路径")
+    parser.add_argument("--all-pages", action="store_true", help="多P视频下载所有选集")
     
     args = parser.parse_args()
     
@@ -247,7 +250,8 @@ def main():
         task = client.create_task(
             video_url=args.url,
             output_formats=formats,
-            use_asr=args.use_asr
+            use_asr=args.use_asr,
+            all_pages=args.all_pages
         )
         task_id = task["task_id"]
         print(f"任务已创建: {task_id}")

@@ -36,6 +36,8 @@ async def main():
         except:
             formats = ["srt"]
     
+    all_pages = input("\n多P视频是否下载所有选集? (y/N): ").lower() == "y"
+    
     # 是否使用语音识别
     use_asr = input("\n当没有官方字幕时，是否使用语音识别生成字幕? (Y/n): ").lower() != "n"
     
@@ -66,7 +68,8 @@ async def main():
         "use_asr": use_asr,
         "asr_model": asr_model,
         "concurrency": 2,
-        "temp_dir": os.path.join(output_dir, "temp")
+        "temp_dir": os.path.join(output_dir, "temp"),
+        "all_pages": all_pages
     })
     
     # 解析输入

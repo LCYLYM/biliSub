@@ -23,7 +23,7 @@ echo 请选择操作:
 echo 1. 运行交互式示例
 echo 2. 下载单个视频字幕 (默认SRT格式)
 echo 3. 批量下载视频字幕
-echo 4. 生成多种格式字幕 (SRT,ASS,VTT,JSON)
+echo 4. 生成多种格式字幕 (SRT,ASS,VTT,JSON,MD,HTML,ASR)
 echo 5. 退出
 echo.
 set /p choice=请输入选项数字: 
@@ -90,7 +90,7 @@ if "%url%"=="" (
     pause
     goto menu
 )
-python enhanced_bilisub.py -i "%url%" -f srt,ass,vtt,json
+python enhanced_bilisub.py -i "%url%" -f srt,ass,vtt,json,md,html,asr
 pause
 goto menu
 
